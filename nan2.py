@@ -13,6 +13,8 @@ import urllib3
 import threading
 from datetime import datetime
 import queue
+from fastapi.middleware.cors import CORSMiddleware
+
 
 # Disable SSL warnings and configure SSL context
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -465,7 +467,7 @@ def start_live_tracking():
         status_msg += "📊 Status: Collecting frames...\n"
         status_msg += "🔄 Next analysis in 20 seconds\n"
         status_msg += "🚨 Anomaly detection: Active (every 5s)\n\n"
-        status_msg += "📋 Analysis reports will appear in the reports section as they are generated."
+        status_msg += "Analysis reports will appear in the reports section as they are generated."
         
         return get_current_live_frame(), status_msg
         
@@ -529,7 +531,7 @@ def get_live_updates():
     if live_reports_content:
         return live_reports_content
     else:
-        return "📋 Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts as they happen\n📊 Manual analysis reports on demand"
+        return "Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts as they happen\n📊 Manual analysis reports on demand"
 
 def process_live_video_analysis():
     """Process analysis for live video (called when button pressed during live tracking)"""
@@ -770,7 +772,7 @@ def create_interface():
     with gr.Blocks(title="VILA Video Analyzer", theme=gr.themes.Soft()) as demo:
         gr.Markdown("# 🎥 VILA Video Analysis & Anomaly Detection")
         gr.Markdown("Choose your analysis mode: **Upload Video**, **Upload for Anomaly Detection**, or **Live Camera Tracking**!")
-        
+
         with gr.Tabs():
             # Tab 1: Video Upload Analysis
             with gr.TabItem("📁 Upload Video Analysis"):
@@ -797,7 +799,7 @@ def create_interface():
                         # Output components
                         out_vid = gr.Video(label="📹 Processed Video")
                         out_txt = gr.Textbox(
-                            label="📋 Analysis Report", 
+                            label="Analysis Report", 
                             lines=25, 
                             max_lines=35,
                             show_copy_button=True,
@@ -906,12 +908,12 @@ def create_interface():
                         
                         # Live reports
                         live_reports = gr.Textbox(
-                            label="📋 Live Analysis Reports",
+                            label="Live Analysis Reports",
                             lines=15,
                             max_lines=25,
                             show_copy_button=True,
                             interactive=False,
-                            value="📋 Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts every 5 seconds\n📊 Manual analysis reports on demand"
+                            value="Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts every 5 seconds\n📊 Manual analysis reports on demand"
                         )
                         
                         # Manual refresh for reports
@@ -999,8 +1001,18 @@ def create_interface():
 
 if __name__ == "__main__":
     demo = create_interface()
+    
+    # Add CORS middleware to the FastAPI app
+    demo.app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Adjust this to be more restrictive in production
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
     demo.launch(
-        server_name="127.0.0.1",
+        server_name="0.0.0.0",
         server_port=7860,
         share=False,
         debug=False
