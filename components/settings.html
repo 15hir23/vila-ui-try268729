@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | VILA AI Inventory Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Light Theme */
+            --primary: #14b8a6;
+            --primary-dark: #0d9488;
+            --secondary: #6366f1;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+            
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --bg-tertiary: #f3f4f6;
+            
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            
+            --card-bg: #ffffff;
+            --card-border: #e5e7eb;
+            
+            /* Dark Theme - will be applied when dark class is added to body */
+            .dark {
+                --primary: #14b8a6;
+                --primary-dark: #0d9488;
+                --secondary: #818cf8;
+                --danger: #f87171;
+                --warning: #fbbf24;
+                --success: #34d399;
+                
+                --text-primary: #f9fafb;
+                --text-secondary: #d1d5db;
+                --text-tertiary: #9ca3af;
+                
+                --bg-primary: #111827;
+                --bg-secondary: #1f2937;
+                --bg-tertiary: #374151;
+                
+                --border: #4b5563;
+                --shadow: 0 1px 3px rgba(0,0,0,0.3);
+                
+                --card-bg: #1f2937;
+                --card-border: #374151;
+            }
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem 0;
+            position: relative;
+            z-index: 10;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            padding: 0 1.5rem;
+        }
+        
+        .logo img {
+            width: 36px;
+            margin-right: 12px;
+        }
+        
+        .logo h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .nav-menu {
+            list-style: none;
+            padding: 0 1rem;
+        }
+        
+        .nav-item {
+            margin-bottom: 0.25rem;
+            position: relative;
+            transition: all 0.2s ease;
+            border-radius: 0.5rem;
+        }
+        
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .nav-item.active {
+            background: var(--primary);
+        }
+        
+        .nav-item.active .nav-link {
+            color: white;
+        }
+        
+        .nav-item.active .nav-link i {
+            color: white;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-link i {
+            margin-right: 12px;
+            font-size: 1.1rem;
+            color: var(--text-tertiary);
+            transition: color 0.3s ease;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            padding: 2rem;
+            background-color: var(--bg-primary);
+            transition: background-color 0.3s ease;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border);
+        }
+        
+        .user-profile span {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        /* Settings Page Styles */
+        .settings-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .settings-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+        
+        .settings-tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .settings-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        .settings-tab:hover {
+            color: var(--text-primary);
+        }
+        
+        .settings-content {
+            display: none;
+        }
+        
+        .settings-content.active {
+            display: block;
+        }
+        
+        .settings-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+        
+        .settings-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+        }
+        
+        .settings-card h3 i {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+        
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        .form-group input[type="text"],
+        .form-group input[type="password"],
+        .form-group input[type="email"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border);
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-secondary {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--bg-secondary);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        
+        .flex-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .theme-switcher {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+        }
+        
+        .theme-switcher i {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 240px 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .settings-tabs {
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body class="light">
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
+                <h2>VILA AI</h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="analyzer.html" class="nav-link">
+                        <i class="fas fa-video"></i>
+                        <span>Video Analyzer</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Anomaly Detection</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Analytics</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                <li class="nav-item active">
+                    <a href="settings.html" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Settings</h1>
+                <div class="user-profile">
+                    <img src="https://api.dicebear.com/7.x/personas/svg?seed=Admin" alt="User">
+                    <span id="display-name">Admin</span>
+                </div>
+            </div>
+            
+            <div class="settings-container">
+                <div class="settings-tabs">
+                    <div class="settings-tab active" data-tab="general">General</div>
+                    <div class="settings-tab" data-tab="security">Security</div>
+                    <div class="settings-tab" data-tab="memory">Memory & Storage</div>
+                    <div class="settings-tab" data-tab="notifications">Notifications</div>
+                    <div class="settings-tab" data-tab="system">System</div>
+                </div>
+                
+                <!-- General Settings -->
+                <div class="settings-content active" id="general-settings">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-user"></i> Profile Settings</h3>
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" value="admin" placeholder="Enter your username">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" value="admin@inventory.com" placeholder="Enter your email">
+                        </div>
+                        <div class="form-group">
+                            <label for="timezone">Timezone</label>
+                            <select id="timezone">
+                                <option value="UTC">UTC</option>
+                                <option value="EST" selected>Eastern Time (EST)</option>
+                                <option value="PST">Pacific Time (PST)</option>
+                                <option value="CST">Central Time (CST)</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="updateProfile()">Update Profile</button>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <h3><i class="fas fa-palette"></i> Appearance</h3>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <span>Dark Mode</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="dark-mode-toggle">
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="theme-color">Theme Color</label>
+                            <select id="theme-color">
+                                <option value="teal" selected>Teal</option>
+                                <option value="blue">Blue</option>
+                                <option value="indigo">Indigo</option>
+                                <option value="purple">Purple</option>
+                                <option value="red">Red</option>
+                                <option value="orange">Orange</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="font-size">Font Size</label>
+                            <select id="font-size">
+                                <option value="small">Small</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Security Settings -->
+                <div class="settings-content" id="security-settings">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-lock"></i> Password & Authentication</h3>
+                        <div class="form-group">
+                            <label for="current-password">Current Password</label>
+                            <input type="password" id="current-password" placeholder="Enter current password">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-password">New Password</label>
+                            <input type="password" id="new-password" placeholder="Enter new password">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm-password">Confirm New Password</label>
+                            <input type="password" id="confirm-password" placeholder="Confirm new password">
+                        </div>
+                        <button class="btn btn-primary">Change Password</button>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <h3><i class="fas fa-shield-alt"></i> Security Preferences</h3>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <span>Two-Factor Authentication</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="2fa-toggle" checked>
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                            <p class="text-muted">Add an extra layer of security to your account</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <span>Email Notifications for Logins</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="login-notifications-toggle" checked>
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                            <p class="text-muted">Get notified when someone logs into your account</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <span>Session Timeout</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="session-timeout-toggle" checked>
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                            <p class="text-muted">Automatically log out after 30 minutes of inactivity</p>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <h3><i class="fas fa-users"></i> Active Sessions</h3>
+                        <div class="session-item">
+                            <div class="flex-row">
+                                <div>
+                                    <strong>Chrome on Windows</strong>
+                                    <p>New York, USA • Just now</p>
+                                </div>
+                                <button class="btn btn-secondary btn-sm">Revoke</button>
+                            </div>
+                        </div>
+                        <div class="session-item" style="margin-top: 1rem;">
+                            <div class="flex-row">
+                                <div>
+                                    <strong>Safari on Mac</strong>
+                                    <p>San Francisco, USA • 2 days ago</p>
+                                </div>
+                                <button class="btn btn-secondary btn-sm">Revoke</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Memory & Storage Settings -->
+                <div class="settings-content" id="memory-settings">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-database"></i> Memory Preferences</h3>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <span>Enable Conversation Memory</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="memory-toggle" checked>
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                            <p class="text-muted">Remember previous interactions for better context</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="memory-duration">Memory Duration</label>
+                            <select id="memory-duration">
+                                <option value="1">1 hour</option>
+                                <option value="24">24 hours</option>
+                                <option value="168" selected>1 week</option>
+                                <option value="720">1 month</option>
+                                <option value="0">Until manually cleared</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="memory-scope">Memory Scope</label>
+                            <select id="memory-scope">
+                                <option value="session" selected>Current session only</option>
+                                <option value="browser">This browser</option>
+                                <option value="account">Across all devices</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <h3><i class="fas fa-hdd"></i> Storage Management</h3>
+                        <div class="storage-meter">
+                            <div class="flex-row" style="margin-bottom: 0.5rem;">
+                                <span>Storage Used</span>
+                                <span>1.2 GB of 5 GB</span>
+                            </div>
+                            <div style="height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;">
+                                <div style="width: 24%; height: 100%; background: var(--primary);"></div>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 1.5rem;">
+                            <label>Data to Store</label>
+                            <div style="margin-top: 0.5rem;">
+                                <label class="toggle-label">
+                                    <span>Analysis Reports</span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="store-reports-toggle" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <label class="toggle-label">
+                                    <span>Anomaly Detection Data</span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="store-anomalies-toggle" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <label class="toggle-label">
+                                    <span>Video Previews</span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="store-previews-toggle">
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" style="margin-top: 1rem;">Clear Temporary Files</button>
+                        <button class="btn btn-danger" style="margin-top: 1rem; margin-left: 0.5rem;">Clear All Data</button>
+                    </div>
+                </div>
+                
+                <!-- Notification Settings -->
+                <div class="settings-content" id="notifications-settings">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-bell"></i> Notification Preferences</h3>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <span>Enable Notifications</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="notifications-toggle" checked>
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Notification Methods</label>
+                            <div style="margin-top: 0.5rem;">
+                                <label class="toggle-label">
+                                    <span>Email Notifications</span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="email-notifications-toggle" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <label class="toggle-label">
+                                    <span>Browser Notifications</span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="browser-notifications-toggle">
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <label class="toggle-label">
+                                    <span>Mobile Push Notifications</span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="push-notifications-toggle">
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Notification Types</label>
+                            <div style="margin-top: 0.5rem;">
+                                <label class="toggle-label">
+                                    <span>Critical Anomalies</span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="critical-notifications-toggle" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <label class="toggle-label">
+                                    <span>Analysis Completed</span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="analysis-notifications-toggle" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <label class="toggle-label">
+                                    <span>System Updates</span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="updates-notifications-toggle">
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- System Settings -->
+                <div class="settings-content" id="system-settings">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-sliders-h"></i> System Configuration</h3>
+                        <div class="form-group">
+                            <label for="api-endpoint">API Endpoint</label>
+                            <input type="text" id="api-endpoint" value="https://api.vila-ai.com/v1" placeholder="Enter API endpoint">
+                        </div>
+                        <div class="form-group">
+                            <label for="model-version">AI Model Version</label>
+                            <select id="model-version">
+                                <option value="vila-1.0">VILA 1.0 (Stable)</option>
+                                <option value="vila-1.1" selected>VILA 1.1 (Recommended)</option>
+                                <option value="vila-2.0-beta">VILA 2.0 (Beta)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="processing-location">Processing Location</label>
+                            <select id="processing-location">
+                                <option value="auto" selected>Automatic (Recommended)</option>
+                                <option value="us-east">US East</option>
+                                <option value="us-west">US West</option>
+                                <option value="europe">Europe</option>
+                                <option value="asia">Asia</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <span>Enable Hardware Acceleration</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="hardware-accel-toggle" checked>
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <h3><i class="fas fa-info-circle"></i> About</h3>
+                        <div class="form-group">
+                            <label>Version</label>
+                            <p>VILA AI Inventory Management v1.2.3</p>
+                        </div>
+                        <div class="form-group">
+                            <label>License</label>
+                            <p>Enterprise Edition (Expires: Dec 31, 2024)</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Support</label>
+                            <p>support@vila-ai.com • (555) 123-4567</p>
+                        </div>
+                        <button class="btn btn-secondary">Check for Updates</button>
+                        <button class="btn btn-primary" style="margin-left: 0.5rem;">Documentation</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Theme Switcher Button -->
+    <div class="theme-switcher" id="theme-switcher">
+        <i class="fas fa-moon"></i>
+    </div>
+    
+    <script>
+                function updateProfile() {
+            const newUsername = document.getElementById('username').value.trim();
+
+            if (newUsername !== '') {
+                // Update display name in settings page
+                document.getElementById('display-name').textContent = newUsername;
+
+                // Update avatar
+                const avatarImg = document.querySelector('.user-profile img');
+                avatarImg.src = `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(newUsername)}`;
+
+                // ✅ Save to localStorage
+                localStorage.setItem('username', newUsername);
+
+                alert('Profile updated successfully!');
+            }
+        }
+        // Theme switching functionality
+        const themeSwitcher = document.getElementById('theme-switcher');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const body = document.body;
+        
+        // Check for saved theme preference or use preferred color scheme
+        const savedTheme = localStorage.getItem('theme') || 
+                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        
+        // Apply the saved theme
+        if (savedTheme === 'dark') {
+            body.classList.add('dark');
+            darkModeToggle.checked = true;
+            themeSwitcher.innerHTML = '<i class="fas fa-sun"></i>';
+        } else {
+            body.classList.remove('dark');
+            darkModeToggle.checked = false;
+            themeSwitcher.innerHTML = '<i class="fas fa-moon"></i>';
+        }
+        
+        // Toggle theme on button click
+        themeSwitcher.addEventListener('click', function() {
+            body.classList.toggle('dark');
+            const isDark = body.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            if (isDark) {
+                themeSwitcher.innerHTML = '<i class="fas fa-sun"></i>';
+                darkModeToggle.checked = true;
+            } else {
+                themeSwitcher.innerHTML = '<i class="fas fa-moon"></i>';
+                darkModeToggle.checked = false;
+            }
+        });
+
+        // Toggle theme on switch
+        darkModeToggle.addEventListener('change', function() {
+            body.classList.toggle('dark');
+            const isDark = body.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            if (isDark) {
+                themeSwitcher.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                themeSwitcher.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        });
+        
+        // Tab switching functionality
+        const tabs = document.querySelectorAll('.settings-tab');
+        const contents = document.querySelectorAll('.settings-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                this.classList.add('active');
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(`${tabId}-settings`).classList.add('active');
+            });
+        });
+        
+        // Navigation active state
+        document.addEventListener('DOMContentLoaded', function() {
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    navItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+        
+        // Simulate saving settings
+        const saveButtons = document.querySelectorAll('.btn-primary:not(.theme-switcher)');
+        saveButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                alert('Settings saved successfully!');
+            });
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+    const savedUsername = localStorage.getItem('username');
+    if (savedUsername) {
+        // Update input field value
+        const usernameInput = document.getElementById('username');
+        if (usernameInput) {
+            usernameInput.value = savedUsername;
+        }
+
+        // Update display name
+        const displayName = document.getElementById('display-name');
+        if (displayName) {
+            displayName.textContent = savedUsername;
+        }
+
+        // Update avatar
+        const avatarImg = document.querySelector('.user-profile img');
+        if (avatarImg) {
+            avatarImg.src = `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(savedUsername)}`;
+        }
+    }
+});
+
+    </script>
+</body>
+</html>

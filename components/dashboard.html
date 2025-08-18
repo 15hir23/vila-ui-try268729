@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VILA AI Video Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --teal-primary: #14b8a6;
+            --teal-secondary: #0d9488;
+            --indigo-primary: #6366f1;
+            --indigo-secondary: #4f46e5;
+            --grey-50: #f9fafb;
+            --grey-100: #f3f4f6;
+            --grey-200: #e5e7eb;
+            --grey-300: #d1d5db;
+            --grey-400: #9ca3af;
+            --grey-500: #6b7280;
+            --grey-600: #4b5563;
+            --grey-700: #374151;
+            --grey-800: #1f2937;
+            --grey-900: #111827;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background-color: var(--grey-50);
+            color: var(--grey-900);
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            background: var(--white);
+            border-right: 1px solid var(--grey-200);
+            padding: 1.5rem 0;
+            position: relative;
+            z-index: 10;
+            transition: transform 0.3s ease;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            padding: 0 1.5rem;
+        }
+        
+        .logo img {
+            width: 36px;
+            margin-right: 12px;
+        }
+        
+        .logo h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--grey-900);
+        }
+        
+        .nav-menu {
+            list-style: none;
+            padding: 0 1rem;
+        }
+        
+        .nav-item {
+            margin-bottom: 0.25rem;
+            position: relative;
+            transition: all 0.2s ease;
+            border-radius: 0.5rem;
+        }
+        
+        .nav-item:hover {
+            background: var(--grey-100);
+        }
+        
+        .nav-item.active {
+            background: var(--teal-primary);
+        }
+        
+        .nav-item.active .nav-link {
+            color: var(--white);
+        }
+        
+        .nav-item.active .nav-link i {
+            color: var(--white);
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--grey-600);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+        }
+        
+        .nav-link i {
+            margin-right: 12px;
+            font-size: 1.1rem;
+            color: var(--grey-500);
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            padding: 2rem;
+            background-color: var(--grey-50);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--grey-900);
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--grey-200);
+        }
+        
+        .user-profile span {
+            font-weight: 500;
+            color: var(--grey-700);
+        }
+        
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: var(--white);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid var(--grey-200);
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--teal-primary);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--white);
+            flex-shrink: 0;
+        }
+        
+        .card-icon.analytics {
+            background: linear-gradient(135deg, var(--indigo-primary), var(--indigo-secondary));
+        }
+        
+        .card-icon.anomaly {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .card-icon.reports {
+            background: linear-gradient(135deg, var(--teal-primary), var(--teal-secondary));
+        }
+        
+        .card-icon.settings {
+            background: linear-gradient(135deg, var(--grey-500), var(--grey-600));
+        }
+        
+        .card h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--grey-800);
+        }
+        
+        .card p {
+            color: var(--grey-500);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        
+        .card-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--grey-900);
+        }
+        
+        .card-value.positive {
+            color: var(--teal-primary);
+        }
+        
+        /* Recent Activity */
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--grey-800);
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+            color: var(--teal-primary);
+        }
+        
+        .activity-list {
+            background: var(--white);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--grey-200);
+        }
+        
+        .activity-item {
+            display: flex;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--grey-100);
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            color: var(--white);
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .activity-details {
+            flex: 1;
+            min-width: 0; /* Prevent overflow */
+        }
+        
+        .activity-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: var(--grey-800);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .activity-time {
+            font-size: 0.8rem;
+            color: var(--grey-500);
+        }
+        
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--grey-700);
+            padding: 0.5rem;
+            margin-right: 1rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 240px 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                z-index: 100;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .header {
+                flex-direction: row;
+                align-items: center;
+                gap: 1rem;
+            }
+            
+            .hamburger {
+                display: block;
+            }
+            
+            .activity-item {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .activity-details {
+                min-width: 0;
+                flex: 1 1 200px;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+            opacity: 0;
+        }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="logo">
+                <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
+                <h2>VILA AI</h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active">
+                    <a href="dashboard.html" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="analyzer.html" class="nav-link">
+                        <i class="fas fa-video"></i>
+                        <span>Video Analyzer</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Anomaly Detection</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Analytics</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="settings.html" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <div style="display: flex; align-items: center;">
+                    <button class="hamburger" id="hamburger">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1>Dashboard Overview</h1>
+                </div>
+                <div class="user-profile">
+                    <img src="https://api.dicebear.com/7.x/personas/svg?seed=Admin" alt="User">
+                    <span id="display-name">Admin</span>
+                </div>
+            </div>
+            
+            <!-- Cards Grid -->
+            <div class="cards-grid">
+                <div class="card fade-in delay-1">
+                    <div class="card-header">
+                        <div>
+                            <h3>Video Analytics</h3>
+                            <p>Processed this month</p>
+                        </div>
+                        <div class="card-icon analytics">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">1,248</div>
+                    <p><span class="badge badge-success">+12% from last month</span></p>
+                </div>
+                
+                <div class="card fade-in delay-2">
+                    <div class="card-header">
+                        <div>
+                            <h3>Anomalies Detected</h3>
+                            <p>Potential incidents</p>
+                        </div>
+                        <div class="card-icon anomaly">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">87</div>
+                    <p><span class="badge badge-danger">+5 urgent</span></p>
+                </div>
+                
+                <div class="card fade-in delay-3">
+                    <div class="card-header">
+                        <div>
+                            <h3>Reports Generated</h3>
+                            <p>Detailed analysis</p>
+                        </div>
+                        <div class="card-icon reports">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                    </div>
+                    <div class="card-value positive">324</div>
+                    <p><span class="badge badge-success">All up-to-date</span></p>
+                </div>
+                
+                <div class="card fade-in delay-4">
+                    <div class="card-header">
+                        <div>
+                            <h3>System Health</h3>
+                            <p>Current status</p>
+                        </div>
+                        <div class="card-icon settings">
+                            <i class="fas fa-server"></i>
+                        </div>
+                    </div>
+                    <div class="card-value positive">100%</div>
+                    <p><span class="badge badge-success">Optimal</span></p>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <h2 class="section-title">
+                <i class="fas fa-history"></i>
+                Recent Activity
+            </h2>
+            
+            <div class="activity-list">
+                <div class="activity-item">
+                    <div class="activity-icon" style="background: var(--indigo-primary)">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-title">New video analysis completed</div>
+                        <div class="activity-time">Warehouse safety inspection - 5 minutes ago</div>
+                    </div>
+                    <span class="badge badge-success">Completed</span>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon" style="background: #ef4444">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-title">Anomaly detected in Zone B</div>
+                        <div class="activity-time">Person falling incident - 1 hour ago</div>
+                    </div>
+                    <span class="badge badge-danger">Critical</span>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon" style="background: var(--teal-primary)">
+                        <i class="fas fa-file-export"></i>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-title">Monthly report generated</div>
+                        <div class="activity-time">Safety compliance summary - 3 hours ago</div>
+                    </div>
+                    <span class="badge badge-success">Ready</span>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon" style="background: var(--grey-600)">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-title">New user account created</div>
+                        <div class="activity-time">Safety officer - Yesterday</div>
+                    </div>
+                    <span class="badge badge-warning">Pending</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Hamburger menu toggle
+            const hamburger = document.getElementById('hamburger');
+            const sidebar = document.getElementById('sidebar');
+            
+            if (hamburger && sidebar) {
+                hamburger.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                });
+            }
+            
+            // Highlight current page in nav
+            const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const link = item.querySelector('.nav-link').getAttribute('href');
+                if (link === currentPage) {
+                    item.classList.add('active');
+                }
+                
+                item.addEventListener('click', function() {
+                    navItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Close sidebar on mobile after clicking a link
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                    }
+                });
+            });
+
+            // Simulate loading data
+            setTimeout(() => {
+                const cards = document.querySelectorAll('.card');
+                cards.forEach(card => {
+                    card.style.opacity = '1';
+                });
+            }, 300);
+            
+            // Check for saved username
+            const savedUsername = localStorage.getItem('username');
+            if (savedUsername) {
+                const nameElement = document.getElementById('display-name');
+                if (nameElement) {
+                    nameElement.textContent = savedUsername;
+                }
+                
+                const avatarImg = document.querySelector('.user-profile img');
+                if (avatarImg) {
+                    avatarImg.src = `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(savedUsername)}`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

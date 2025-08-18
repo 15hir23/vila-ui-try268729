@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VILA AI Video Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --teal-primary: #14b8a6;
+            --teal-secondary: #0d9488;
+            --indigo-primary: #6366f1;
+            --indigo-secondary: #4f46e5;
+            --grey-50: #f9fafb;
+            --grey-100: #f3f4f6;
+            --grey-200: #e5e7eb;
+            --grey-300: #d1d5db;
+            --grey-400: #9ca3af;
+            --grey-500: #6b7280;
+            --grey-600: #4b5563;
+            --grey-700: #374151;
+            --grey-800: #1f2937;
+            --grey-900: #111827;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+                
+        body {
+            background-color: var(--grey-50);
+            color: var(--grey-900);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background: var(--white);
+            border-right: 1px solid var(--grey-200);
+            padding: 1.5rem 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            padding: 0 1.5rem;
+        }
+
+        .logo img {
+            width: 36px;
+            margin-right: 12px;
+        }
+
+        .logo h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--grey-900);
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0 1rem;
+        }
+
+        .nav-item {
+            margin-bottom: 0.25rem;
+            position: relative;
+            transition: all 0.2s ease;
+            border-radius: 0.5rem;
+        }
+
+        .nav-item:hover {
+            background: var(--grey-100);
+        }
+
+        .nav-item.active {
+            background: var(--teal-primary);
+        }
+
+        .nav-item.active .nav-link {
+            color: var(--white);
+        }
+
+        .nav-item.active .nav-link i {
+            color: var(--white);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--grey-600);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+        }
+
+        .nav-link i {
+            margin-right: 12px;
+            font-size: 1.1rem;
+            color: var(--grey-500);
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            padding: 2rem;
+            background-color: var(--grey-50);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+                
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--grey-900);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--grey-200);
+        }
+        .user-profile span {
+            font-weight: 500;
+            color: var(--grey-700);
+        }
+
+                /* Analyzer Container */
+        .analyzer-container {
+            background: var(--white);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--grey-200);
+        }
+
+        .analyzer-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .analyzer-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--grey-800);
+            margin-bottom: 0.5rem;
+        }
+                
+        .analyzer-header p {
+            color: var(--grey-500);
+            font-size: 0.95rem;
+        }
+
+        .analyzer-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .upload-section {
+            border: 2px dashed var(--grey-300);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: var(--grey-50);
+        }
+
+        .upload-section:hover {
+            border-color: var(--teal-primary);
+            background: var(--grey-100);
+        }
+                
+        .upload-icon {
+            font-size: 2.5rem;
+            color: var(--teal-primary);
+            margin-bottom: 1rem;
+        }
+
+        .upload-btn {
+            background: var(--teal-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .upload-btn:disabled {
+            background: var(--grey-400);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            background: var(--teal-secondary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .upload-btn i {
+            font-size: 1rem;
+        }
+
+        .results-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-preview {
+            width: 100%;
+            background: var(--grey-100);
+            border-radius: 0.75rem;
+            aspect-ratio: 16/9;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--grey-200);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+                
+        .video-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: black;
+        }
+
+        #video-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--grey-500);
+            text-align: center;
+            padding: 1rem;
+        }
+
+        #video-placeholder i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--grey-400);
+        }
+
+        .analysis-report {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 0.9rem;
+            overflow-y: auto;
+            max-height: 300px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .action-btns {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .analyze-btn {
+            background: var(--indigo-primary);
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            background: var(--indigo-secondary);
+        }
+        
+        .anomaly-btn {
+            background: #e07373;
+        }
+        
+        .anomaly-btn:hover:not(:disabled) {
+            background: #dc2626;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .analyzer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .analyzer-container {
+                padding: 1rem;
+            }
+            
+            .action-btns {
+                flex-direction: column;
+            }
+            
+            .upload-btn, .analyze-btn, .anomaly-btn {
+                width: 100%;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+            opacity: 0;
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=VILA" alt="Logo">
+                <h2>VILA AI</h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item active">
+                    <a href="analyzer.html" class="nav-link">
+                        <i class="fas fa-video"></i>
+                        <span>Video Analyzer</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Anomaly Detection</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Analytics</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="settings.html" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Video Analyzer</h1>
+                <div class="user-profile">
+                    <img src="https://api.dicebear.com/7.x/personas/svg?seed=Admin" alt="User">
+                    <span id="display-name">Admin</span>
+                </div>
+            </div>
+            
+            <div class="analyzer-container">
+                <div class="analyzer-header">
+                    <h2>AI-Powered Video Analysis</h2>
+                    <p>Upload your video for comprehensive analysis or anomaly detection using NVIDIA VILA technology</p>
+                </div>
+                
+                <div class="analyzer-grid">
+                    <div class="upload-section">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <h3>Upload Video File</h3>
+                        <p>Supported formats: MP4, MOV, AVI, MKV</p>
+                        <p>Max file size: 100MB</p>
+                        <input type="file" id="video-upload" accept="video/*" style="display: none;">
+                        <button class="upload-btn" onclick="document.getElementById('video-upload').click()">
+                            <i class="fas fa-upload"></i> Select Video
+                        </button>
+                    </div>
+                    
+                    <div class="results-section">
+                        <div class="video-preview">
+                            <video id="video-player" controls style="display: none;"></video>
+                            <div id="video-placeholder" style="display: flex; justify-content: center; align-items: center; height: 100%; color: #6c757d;">
+                                <i class="fas fa-video" style="font-size: 2rem; margin-right: 10px;"></i>
+                                <span>Video preview will appear here</span>
+                            </div>
+                        </div>
+                        
+                        <div class="analysis-report" id="analysis-report">
+                            Analysis report will be generated here...
+                        </div>
+                        
+                        <div class="action-btns">
+                            <button class="upload-btn analyze-btn" id="analyze-btn" disabled>
+                                <i class="fas fa-play"></i> Analyze Video
+                            </button>
+                            <button class="upload-btn anomaly-btn" id="anomaly-btn" disabled>
+                                <i class="fas fa-exclamation-triangle"></i> Detect Anomalies
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+<script>
+    // Handle video upload and preview
+    const videoUpload = document.getElementById('video-upload');
+    const videoPlayer = document.getElementById('video-player');
+    const videoPlaceholder = document.getElementById('video-placeholder');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const anomalyBtn = document.getElementById('anomaly-btn');
+    const analysisReport = document.getElementById('analysis-report');
+    
+    let uploadedVideoFile = null;
+    
+    videoUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            uploadedVideoFile = file;
+            const videoURL = URL.createObjectURL(file);
+            videoPlayer.src = videoURL;
+            videoPlayer.style.display = 'block';
+            videoPlaceholder.style.display = 'none';
+            
+            // Enable buttons
+            analyzeBtn.disabled = false;
+            anomalyBtn.disabled = false;
+        }
+    });
+    
+    // Handle navigation active state
+    document.addEventListener('DOMContentLoaded', function() {
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                navItems.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    });
+
+    // Function to call the Flask API
+    async function callAPI(videoFile, endpoint) {
+        const formData = new FormData();
+        formData.append('video', videoFile);
+        
+        try {
+            const response = await fetch(`http://localhost:5000/${endpoint}`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('API call failed:', error);
+            throw error;
+        }
+    }
+
+    // Event listeners for analysis buttons
+    analyzeBtn.addEventListener('click', async function() {
+        if (!uploadedVideoFile) {
+            alert('Please upload a video first');
+            return;
+        }
+        
+        analysisReport.innerHTML = `🔄 Analysis in Progress...
+
+Processing video with NVIDIA VILA AI. This may take a few moments.
+
+⏳ Extracting key frames and analyzing content...`;
+        
+        analyzeBtn.disabled = true;
+        anomalyBtn.disabled = true;
+        
+        try {
+            const result = await callAPI(uploadedVideoFile, 'analyze');
+            
+            if (result.success) {
+                analysisReport.innerHTML = result.report;
+            } else {
+                analysisReport.innerHTML = `❌ Error: ${result.error}`;
+            }
+        } catch (error) {
+            console.error('Analysis failed:', error);
+            analysisReport.innerHTML = `❌ Analysis Failed
+
+There was an error processing your video:
+${error.message}
+
+Please ensure the Flask API server is running on http://localhost:5000`;
+        } finally {
+            analyzeBtn.disabled = false;
+            anomalyBtn.disabled = false;
+        }
+    });
+    
+    anomalyBtn.addEventListener('click', async function() {
+        if (!uploadedVideoFile) {
+            alert('Please upload a video first');
+            return;
+        }
+        
+        analysisReport.innerHTML = `🚨 Anomaly Detection in Progress...
+
+Scanning video for potential safety incidents and anomalies using VILA AI.
+
+🔍 Analyzing frames for unusual events...`;
+        
+        analyzeBtn.disabled = true;
+        anomalyBtn.disabled = true;
+        
+        try {
+            const result = await callAPI(uploadedVideoFile, 'detect-anomalies');
+            
+            if (result.success) {
+                analysisReport.innerHTML = result.report;
+            } else {
+                analysisReport.innerHTML = `❌ Error: ${result.error}`;
+            }
+        } catch (error) {
+            console.error('Anomaly detection failed:', error);
+            analysisReport.innerHTML = `❌ Anomaly Detection Failed
+
+There was an error scanning for anomalies:
+${error.message}
+
+Please ensure the Flask API server is running on http://localhost:5000`;
+        } finally {
+            analyzeBtn.disabled = false;
+            anomalyBtn.disabled = false;
+        }
+    });
+
+    // Load username if saved
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedUsername = window.localStorage?.getItem('username');
+        if (savedUsername) {
+            const nameElement = document.getElementById('display-name');
+            if (nameElement) {
+                nameElement.textContent = savedUsername;
+            }
+            const avatarImg = document.querySelector('.user-profile img');
+            if (avatarImg) {
+                avatarImg.src = `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(savedUsername)}`;
+            }
+        }
+    });
+</script>
+</body>
+</html>
