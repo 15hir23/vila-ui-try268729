@@ -38,6 +38,9 @@ video_context_frames = []
 video_context_summary = ""
 chat_history = []
 
+# Store the last uploaded video path for integrated processing
+last_uploaded_video = None
+
 # ---- Helper Functions ----
 def encode_frame_to_base64(frame):
     """Convert OpenCV frame to base64 string for API"""
@@ -164,7 +167,7 @@ def detect_anomalies_with_vila(key_frames, video_duration):
         # Create specific prompt for anomaly detection - focused on summary
         prompt = f"""Analyze this sequence of {len(encoded_frames)} frames from a {video_duration:.1f}-second video and provide a SUMMARY of anomalies detected.
 
-🚨 DETECT THESE ANOMALIES:
+DETECT THESE ANOMALIES:
 - Objects falling (boxes, items, equipment)
 - People falling, tripping, or stumbling  
 - Equipment malfunctions or failures
@@ -303,13 +306,13 @@ def process_voice_chat_question(question, audio_input=None):
             try:
                 # Note: In a real implementation, you'd use speech-to-text here
                 # For now, we'll show how it would work
-                return "🎤 Voice input detected! Please also type your question in the text box for now. In a full implementation, this would convert speech to text automatically.", None, get_chat_history()
+                return "Voice input detected! Please also type your question in the text box for now. In a full implementation, this would convert speech to text automatically.", None, get_chat_history()
             except Exception as e:
-                return f"❌ Error processing voice input: {str(e)}", None, get_chat_history()
+                return f"Error processing voice input: {str(e)}", None, get_chat_history()
         
         # Check if we have video context
         if not video_context_frames and not video_context_summary:
-            response = "❌ No video has been analyzed yet. Please upload and analyze a video first in the 'Upload Video Analysis' tab, then come back to ask questions about it."
+            response = "No video has been analyzed yet. Please upload and analyze a video first in the 'Video Analysis' tab, then come back to ask questions about it."
             chat_history.append({"role": "user", "content": question})
             chat_history.append({"role": "assistant", "content": response})
             return response, None, get_chat_history()
@@ -374,7 +377,7 @@ Please answer the user's question based on the video analysis context provided. 
         return response, audio_response, get_chat_history()
         
     except Exception as e:
-        error_response = f"❌ Error processing your question: {str(e)}"
+        error_response = f"Error processing your question: {str(e)}"
         chat_history.append({"role": "assistant", "content": error_response})
         return error_response, None, get_chat_history()
 
@@ -393,14 +396,14 @@ def format_chat_history_for_context():
 def get_chat_history():
     """Format chat history for display"""
     if not chat_history:
-        return "💬 Ask me anything about the analyzed video!\n\nTip: Upload and analyze a video first, then come here to chat about it."
+        return "Ask me anything about the analyzed video!\n\nTip: Upload and analyze a video first, then come here to chat about it."
     
     formatted_chat = []
     for entry in chat_history:
         if entry["role"] == "user":
-            formatted_chat.append(f"👤 **You:** {entry['content']}")
+            formatted_chat.append(f"**You:** {entry['content']}")
         else:
-            formatted_chat.append(f"🤖 **VILA:** {entry['content']}")
+            formatted_chat.append(f"**Assistant:** {entry['content']}")
     
     return "\n\n".join(formatted_chat)
 
@@ -437,7 +440,7 @@ def live_frame_capture_worker():
                     display_frame = frame.copy()
                     elapsed_time = time.time() - last_analysis_time if last_analysis_time > 0 else 0
                     
-                    cv2.putText(display_frame, f"🔴 LIVE - {datetime.now().strftime('%H:%M:%S')}", 
+                    cv2.putText(display_frame, f"LIVE - {datetime.now().strftime('%H:%M:%S')}", 
                                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                     cv2.putText(display_frame, f"Frames: {len(frame_accumulator)} | Next: {20 - (elapsed_time % 20):.0f}s", 
                                (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
@@ -475,7 +478,7 @@ def live_analysis_worker():
                     
                     # Create timestamped report
                     timestamp = datetime.now().strftime('%H:%M:%S')
-                    report = f"📹 LIVE ANALYSIS [{timestamp}]\n"
+                    report = f"LIVE ANALYSIS [{timestamp}]\n"
                     report += "=" * 40 + "\n"
                     report += f"Frames analyzed: {len(analysis_frames)}\n"
                     report += f"Time period: 20 seconds\n\n"
@@ -523,7 +526,7 @@ def live_anomaly_worker():
                     # Only report if anomalies detected (not "normal activity")
                     if "No significant anomalies detected" not in anomaly_result and "normal activity observed" not in anomaly_result.lower():
                         timestamp = datetime.now().strftime('%H:%M:%S')
-                        alert = f"🚨 ANOMALY ALERT [{timestamp}]\n"
+                        alert = f"ANOMALY ALERT [{timestamp}]\n"
                         alert += "=" * 40 + "\n"
                         alert += anomaly_result + "\n\n"
                         
@@ -567,7 +570,7 @@ def start_live_tracking():
                 test_cap.release()
         
         if live_cap is None:
-            return None, "❌ Error: Could not access any camera. Please check camera permissions."
+            return None, "Error: Could not access any camera. Please check camera permissions."
         
         # Configure camera
         live_cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -591,16 +594,16 @@ def start_live_tracking():
         # Give threads time to start
         time.sleep(1)
         
-        status_msg = "✅ Live tracking started! Camera activated.\n\n"
-        status_msg += " Status: Collecting frames...\n"
-        status_msg += " Next analysis in 20 seconds\n"
-        status_msg += " Anomaly detection: Active (every 5s)\n\n"
-        status_msg += " Analysis reports will appear in the reports section as they are generated."
+        status_msg = "Live tracking started successfully.\n\n"
+        status_msg += "Status: Collecting frames...\n"
+        status_msg += "Next analysis in 20 seconds\n"
+        status_msg += "Anomaly detection: Active (every 5s)\n\n"
+        status_msg += "Analysis reports will appear in the reports section as they are generated."
         
         return get_current_live_frame(), status_msg
         
     except Exception as e:
-        error_msg = f"❌ Error starting live tracking: {str(e)}"
+        error_msg = f"Error starting live tracking: {str(e)}"
         print(error_msg)
         return None, error_msg
 
@@ -616,7 +619,7 @@ def stop_live_tracking():
     
     current_live_frame = None
     
-    return None, "🛑 Live tracking stopped. Camera released."
+    return None, "Live tracking stopped. Camera released."
 
 def get_current_live_frame():
     """Get current frame from live camera for display"""
@@ -659,14 +662,14 @@ def get_live_updates():
     if live_reports_content:
         return live_reports_content
     else:
-        return "📋 Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts as they happen\n📊 Manual analysis reports on demand"
+        return "Live analysis reports will appear here...\n\nAutomatic reports every 20 seconds\nAnomaly alerts as they happen\nManual analysis reports on demand"
 
 def process_live_video_analysis():
     """Process analysis for live video (called when button pressed during live tracking)"""
     global frame_accumulator, live_reports_content
     
     if not live_tracking_active:
-        return "❌ Live tracking is not active. Please start live tracking first."
+        return "Live tracking is not active. Please start live tracking first."
     
     if len(frame_accumulator) < 5:
         return "Not enough frames collected yet. Please wait a few more seconds."
@@ -679,11 +682,11 @@ def process_live_video_analysis():
         analysis_result = analyze_video_with_vila(recent_frames, len(recent_frames) / 30.0)
         
         timestamp = datetime.now().strftime('%H:%M:%S')
-        report = f"📹 INSTANT LIVE ANALYSIS [{timestamp}]\n"
+        report = f"INSTANT LIVE ANALYSIS [{timestamp}]\n"
         report += "=" * 45 + "\n"
         report += f"Frames analyzed: {len(recent_frames)}\n"
         report += f"Camera: Live camera feed\n\n"
-        report += "🤖 VILA Analysis:\n"
+        report += "Analysis:\n"
         report += "-" * 20 + "\n"
         report += analysis_result + "\n\n"
         
@@ -696,7 +699,7 @@ def process_live_video_analysis():
         return live_reports_content
         
     except Exception as e:
-        error_report = f"❌ Error analyzing live video: {str(e)}\n\n"
+        error_report = f"Error analyzing live video: {str(e)}\n\n"
         live_reports_content = error_report + live_reports_content
         return live_reports_content
 
@@ -705,10 +708,10 @@ def process_live_anomaly_detection():
     global frame_accumulator, live_reports_content
     
     if not live_tracking_active:
-        return "❌ Live tracking is not active. Please start live tracking first."
+        return "Live tracking is not active. Please start live tracking first."
     
     if len(frame_accumulator) < 5:
-        return "⏳ Not enough frames collected yet. Please wait a few more seconds."
+        return "Not enough frames collected yet. Please wait a few more seconds."
     
     try:
         # Take recent frames for immediate anomaly detection
@@ -718,11 +721,11 @@ def process_live_anomaly_detection():
         anomaly_result = detect_anomalies_with_vila(recent_frames, len(recent_frames) / 30.0)
         
         timestamp = datetime.now().strftime('%H:%M:%S')
-        report = f"🚨 INSTANT ANOMALY CHECK [{timestamp}]\n"
+        report = f"INSTANT ANOMALY CHECK [{timestamp}]\n"
         report += "=" * 45 + "\n"
         report += f"Frames analyzed: {len(recent_frames)}\n"
         report += f"Camera: Live camera feed\n\n"
-        report += "🔍 Anomaly Detection Results:\n"
+        report += "Anomaly Detection Results:\n"
         report += "-" * 30 + "\n"
         report += anomaly_result + "\n\n"
         
@@ -732,21 +735,26 @@ def process_live_anomaly_detection():
         return live_reports_content
         
     except Exception as e:
-        error_report = f"❌ Error detecting anomalies in live video: {str(e)}\n\n"
+        error_report = f"Error detecting anomalies in live video: {str(e)}\n\n"
         live_reports_content = error_report + live_reports_content
         return live_reports_content
 
-# ---- Video Processing Functions (Updated with Voice Context) ----
-def process_video(input_path):
-    """Original video processing function for general analysis"""
+# ---- Integrated Video Processing Functions ----
+def process_video_analysis(input_path):
+    """Integrated video processing function for general analysis"""
+    global last_uploaded_video
+    
     if input_path is None:
-        return None, "Please upload a video file"
+        return None, "Please upload a video file", gr.update(interactive=False)
+    
+    # Store the uploaded video path
+    last_uploaded_video = input_path
     
     try:
         cap = cv2.VideoCapture(input_path)
         
         if not cap.isOpened():
-            return None, "Error: Could not open video file"
+            return None, "Error: Could not open video file", gr.update(interactive=False)
         
         fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
         w = int(cap.get(3)) or 640
@@ -763,7 +771,7 @@ def process_video(input_path):
 
         if not key_frames:
             cap.release()
-            return None, "Error: Could not extract frames from video"
+            return None, "Error: Could not extract frames from video", gr.update(interactive=False)
 
         # Create output video
         output_path = "output.mp4"
@@ -773,7 +781,7 @@ def process_video(input_path):
         cap.release()
         
         if not success:
-            return None, "Error: Could not create output video"
+            return None, "Error: Could not create output video", gr.update(interactive=False)
 
         # Analyze video with VILA
         print("Analyzing video content with VILA...")
@@ -783,43 +791,51 @@ def process_video(input_path):
         store_video_context(key_frames, vila_summary)
 
         # Build Complete Summary
-        summary = "🎥 VIDEO ANALYSIS REPORT\n"
+        summary = "VIDEO ANALYSIS REPORT\n"
         summary += "=" * 50 + "\n\n"
-        summary += f"📊 Technical Details:\n"
+        summary += f"Technical Details:\n"
         summary += f"• Duration: {duration:.2f} seconds\n"
         summary += f"• Total Frames: {total_frames}\n"
         summary += f"• Frame Rate: {fps} FPS\n"
         summary += f"• Resolution: {w}x{h}\n"
         summary += f"• Processing Time: {time.time() - start_time:.1f} seconds\n\n"
         
-        summary += f"🤖 CCTVENTORY Analysis:\n"
+        summary += f"Video Content Analysis:\n"
         summary += "-" * 30 + "\n"
         summary += vila_summary + "\n\n"
         
-        summary += f"📝 Analysis Method:\n"
+        summary += f"Analysis Method:\n"
         summary += f"• Analyzed {len(key_frames)} key frames using VILA\n"
         summary += f"• AI Model: NVIDIA VILA (Vision-Language Assistant)\n"
         summary += f"• Frame sampling: Evenly distributed across video duration\n\n"
-        summary += f"💬 Voice Chat Ready: You can now ask questions about this video in the Voice Chat tab!"
+        summary += f"Voice Chat Ready: You can now ask questions about this video in the Voice Chat tab!"
 
         print("Video analysis complete!")
-        return output_path, summary
+        return output_path, summary, gr.update(interactive=True)
         
     except Exception as e:
         error_msg = f"Error processing video: {str(e)}"
         print(error_msg)
-        return None, error_msg
+        return None, error_msg, gr.update(interactive=False)
 
-def detect_video_anomalies(input_path):
-    """Function specifically for anomaly detection"""
-    if input_path is None:
-        return None, "Please upload a video file for anomaly detection"
+def process_video_anomaly_detection(input_video):  # <-- Add input_video parameter
+    """Function for anomaly detection on uploaded video"""
+    global last_uploaded_video
+    
+    # Use the input video if provided, otherwise use last uploaded
+    video_path = input_video if input_video is not None else last_uploaded_video
+    
+    if video_path is None:
+        return None, "Please upload a video file first."
+    
+    # Store the video path for future use
+    last_uploaded_video = video_path
     
     try:
-        cap = cv2.VideoCapture(input_path)
+        cap = cv2.VideoCapture(video_path)
         
         if not cap.isOpened():
-            return None, "Error: Could not open video file"
+            return None, "Error: Could not open the uploaded video file"
         
         fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
         w = int(cap.get(3)) or 640
@@ -856,15 +872,15 @@ def detect_video_anomalies(input_path):
         store_video_context(key_frames, f"Anomaly Detection Results: {anomaly_report}")
 
         # Build Anomaly Report
-        report = "🚨 ANOMALY DETECTION SUMMARY\n"
+        report = "ANOMALY DETECTION SUMMARY\n"
         report += "=" * 50 + "\n\n"
-        report += f"📊 Video Details:\n"
+        report += f"Video Details:\n"
         report += f"• Duration: {duration:.2f} seconds ({total_frames} frames)\n"
         report += f"• Resolution: {w}x{h} @ {fps} FPS\n"
         report += f"• Frames Analyzed: {len(key_frames)} key frames\n\n"
         
         # Add common anomaly types reference
-        report += f"🔍 Anomaly Types Monitored:\n"
+        report += f"Anomaly Types Monitored:\n"
         common_anomalies_display = [
             "• Falling objects (boxes, equipment, items)",
             "• Person falls, trips, or stumbles", 
@@ -891,11 +907,11 @@ def detect_video_anomalies(input_path):
         ]
         report += "\n".join(common_anomalies_display) + "\n\n"
         
-        report += f"🤖 VILA Analysis Summary:\n"
+        report += f"Analysis Summary:\n"
         report += "-" * 30 + "\n"
         report += anomaly_report + "\n\n"
         
-        report += f"Detection Method: NVIDIA CCTVENTORY • Focus: Safety & Incident Detection\n\n"
+        report += f"Detection Method: NVIDIA VILA • Focus: Safety & Incident Detection\n\n"
         report += f"Voice Chat Ready: Ask questions about the anomaly detection results in the Voice Chat tab!"
 
         print("Anomaly detection complete!")
@@ -906,322 +922,483 @@ def detect_video_anomalies(input_path):
         print(error_msg)
         return None, error_msg
 
-# ---- Gradio UI (Enhanced with Voice Chat) ----
+# ---- Professional Gradio UI ----
 def create_interface():
-    with gr.Blocks(title="VILA Video Analyzer with Voice Chat", theme=gr.themes.Soft()) as demo:
-        gr.Markdown("# 🎥 CCTV Video Analysis & Voice Chat System")
-        with gr.Tabs():
-            # Tab 1: Video Upload Analysis
-            with gr.TabItem("📁 Upload Video Analysis"):
+    # Custom CSS for professional, minimalist design
+    custom_css = """
+    <style>
+    .gradio-container {
+        font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        background-color: #fafbfc !important;
+    }
+    
+    .main-header {
+        text-align: center;
+        padding: 2rem 0;
+        background: linear-gradient(135deg, #14b8a6 90%, #0d9488 100%) !important;
+        color: white;
+        margin: -1rem -1rem 2rem -1rem;
+        border-radius: 0 0 16px 16px;
+    }
+    
+    .main-header h1 {
+        font-size: 2.5rem;
+        font-weight: 300;
+        margin: 0;
+        letter-spacing: -0.025em;
+        color: #ffffff;
+    }
+    
+    .main-header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0.5rem 0 0 0;
+        font-weight: 300;
+        color: #ffffff;
+    }
+    
+    .tab-nav button {
+        background: white !important;
+        border: 1px solid #e1e5e9 !important;
+        color: #495057 !important;
+        padding: 12px 24px !important;
+        font-weight: 500 !important;
+        border-radius: 8px !important;
+        margin-right: 8px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .tab-nav button:hover {
+        background: #f8f9fa !important;
+        border-color: #667eea !important;
+    }
+    
+    .tab-nav button[aria-selected="true"] {
+        background: #667eea !important;
+        color: white !important;
+        border-color: #667eea !important;
+    }
+    
+    .gr-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        padding: 12px 24px !important;
+        transition: all 0.2s ease !important;
+        text-transform: none !important;
+    }
+    
+    .gr-button:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+    }
+    
+    .gr-button-secondary {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    }
+    
+    .gr-button-secondary:hover {
+        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4) !important;
+    }
+    
+    .gr-panel {
+        border: 1px solid #e1e5e9 !important;
+        border-radius: 12px !important;
+        background: white !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+    }
+    
+    .gr-form {
+        background: white !important;
+        border-radius: 12px !important;
+        border: 1px solid #e1e5e9 !important;
+        padding: 1.5rem !important;
+    }
+    
+    .gr-box {
+        border-radius: 8px !important;
+        border: 1px solid #e1e5e9 !important;
+        background: white !important;
+    }
+    
+    .gr-input, .gr-textarea {
+        border: 1px solid #e1e5e9 !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        transition: border-color 0.2s ease !important;
+    }
+    
+    .gr-input:focus, .gr-textarea:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+    }
+    
+    .status-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+    }
+    
+    .feature-card {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    
+    .feature-card h3 {
+        color: #495057;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .feature-card p {
+        color: #6c757d;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+    </style>
+    """
+    
+    with gr.Blocks(title="Professional Video Analysis System", theme=gr.themes.Soft(), css=custom_css) as demo:
+        # Main Header
+        gr.HTML("""
+        <div class="main-header">
+            <h1>Video Intelligence Platform</h1>
+            <p>Advanced AI-powered video analysis and monitoring system</p>
+        </div>
+        """)
+        
+        with gr.Tabs() as tabs:
+            # Tab 1: Integrated Video Analysis
+            with gr.TabItem("Video Analysis", elem_classes="tab-nav"):
                 with gr.Row():
                     with gr.Column(scale=1):
-                        # Video input
-                        inp = gr.Video(
-                            label="📁 Upload Video", 
-                            sources=["upload"]
+                        # Video input section
+                        gr.Markdown("### Upload & Analyze")
+                        video_input = gr.Video(
+                            label="Video File", 
+                            sources=["upload"],
+                            elem_classes="gr-panel"
                         )
                         
-                        # Analysis buttons
-                        analyze_btn = gr.Button("🎬 Analyze Video", variant="primary", size="lg")
+                        # Primary analysis buttons
+                        with gr.Row():
+                            analyze_btn = gr.Button(
+                                "Analyze Video", 
+                                variant="primary", 
+                                size="lg",
+                                elem_classes="gr-button"
+                            )
                         
-                        with gr.Accordion("ℹ️ Analysis Info", open=False):
+                        # Secondary anomaly detection button (only enabled after upload)
+                        anomaly_btn = gr.Button(
+                            "Detect Anomalies", 
+                            variant="secondary", 
+                            size="lg",
+                            interactive=True,
+                            elem_classes="gr-button gr-button-secondary"
+                        )
+                        
+                        # Analysis information
+                        with gr.Accordion("Analysis Information", open=False):
                             gr.Markdown("""
-                            **🎬 General Video Analysis:**
-                            - Describes activities, people, and settings
-                            - Provides natural language summary
-                            - Identifies interactions and story flow
-                            - Prepares video context for voice chat
-                            """)
-                    
-                    with gr.Column(scale=2):
-                        # Output components
-                        out_vid = gr.Video(label="📹 Processed Video")
-                        out_txt = gr.Textbox(
-                            label="📋 Analysis Report", 
-                            lines=25, 
-                            max_lines=35,
-                            show_copy_button=True,
-                            interactive=False
-                        )
-
-            # Tab 2: Anomaly Detection
-            with gr.TabItem("🚨 Anomaly Detection"):
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        # Video input for anomaly detection
-                        inp_anomaly = gr.Video(
-                            label="📁 Upload Video for Anomaly Detection", 
-                            sources=["upload"]
-                        )
-                        
-                        # Anomaly detection button
-                        anomaly_btn = gr.Button("🚨 Detect Anomalies", variant="secondary", size="lg")
-                        
-                        with gr.Accordion("🔍 Anomaly Types", open=False):
-                            gr.Markdown("""
-                            **🚨 Anomaly Detection:**
-                            - Detects falls, accidents, and unusual events
-                            - Identifies objects falling or equipment failures
-                            - Reports safety incidents and disruptions
-                            - Provides severity assessment of anomalies
-                            - Enables voice chat about detected anomalies
+                            **Video Analysis Features:**
                             
-                            **Monitored Anomalies:**
-                            - Falling objects/people
-                            - Equipment malfunctions
-                            - Spills and collisions
-                            - Theft and suspicious behavior
-                            - Safety violations
-                            - Unauthorized access
+                            • **Content Analysis**: Describes activities, people, settings, and interactions
+                            • **Anomaly Detection**: Identifies unusual events, safety incidents, and security concerns
+                            • **AI-Powered**: Uses NVIDIA VILA vision-language model
+                            • **Voice Chat Ready**: Enables conversation about analysis results
+                            
+                            **Workflow:**
+                            1. Upload your video file
+                            2. Click "Analyze Video" for general content analysis
+                            3. Click "Detect Anomalies" for security and safety analysis
+                            4. Use Voice Chat tab to ask questions about results
                             """)
                     
                     with gr.Column(scale=2):
-                        # Output components for anomaly detection
-                        out_vid_anomaly = gr.Video(label="📹 Anomaly Scan Video")
-                        out_txt_anomaly = gr.Textbox(
-                            label="🚨 Anomaly Report", 
-                            lines=25, 
-                            max_lines=35,
+                        # Output video
+                        output_video = gr.Video(
+                            label="Processed Video",
+                            elem_classes="gr-panel"
+                        )
+                        
+                        # Analysis report
+                        analysis_report = gr.Textbox(
+                            label="Analysis Report", 
+                            lines=20, 
+                            max_lines=30,
                             show_copy_button=True,
-                            interactive=False
+                            interactive=False,
+                            elem_classes="gr-panel"
                         )
 
-            # Tab 3: Live Camera Tracking (FIXED)
-            with gr.TabItem("📹 Live Camera Tracking"):
+            # Tab 2: Live Monitoring
+            with gr.TabItem("Live Monitoring", elem_classes="tab-nav"):
                 with gr.Row():
                     with gr.Column(scale=1):
-                        # Live tracking controls
-                        gr.Markdown("### 🔴 Live Camera Controls")
+                        # Live controls
+                        gr.Markdown("### Live Camera Controls")
                         
                         with gr.Row():
-                            start_live_btn = gr.Button("Start Live Tracking", variant="primary", size="lg")
-                            stop_live_btn = gr.Button("Stop Live Tracking", variant="stop", size="lg")
+                            start_live_btn = gr.Button(
+                                "Start Monitoring", 
+                                variant="primary", 
+                                size="lg",
+                                elem_classes="gr-button"
+                            )
+                            stop_live_btn = gr.Button(
+                                "Stop Monitoring", 
+                                variant="stop", 
+                                size="lg"
+                            )
                         
-                        gr.Markdown("### 📊 Manual Analysis")
+                        gr.Markdown("### Manual Analysis")
                         with gr.Row():
-                            live_analyze_btn = gr.Button("Analyze Current Video", variant="primary")
-                            live_anomaly_btn = gr.Button("Check for Anomalies", variant="secondary")
+                            live_analyze_btn = gr.Button(
+                                "Analyze Current Feed", 
+                                variant="primary",
+                                elem_classes="gr-button"
+                            )
+                            live_anomaly_btn = gr.Button(
+                                "Check Anomalies", 
+                                variant="secondary",
+                                elem_classes="gr-button gr-button-secondary"
+                            )
                         
-                        # Live status
+                        # Status display
                         live_status = gr.Textbox(
-                            label="📊 Live Tracking Status",
+                            label="Monitoring Status",
                             lines=8,
                             interactive=False,
-                            value="🔴 Live tracking not started. Click 'Start Live Tracking' to begin."
+                            value="Live monitoring not started. Click 'Start Monitoring' to begin.",
+                            elem_classes="gr-panel"
                         )
                         
-                        with gr.Accordion("📖 Live Tracking Guide", open=False):
+                        # Features information
+                        with gr.Accordion("Live Monitoring Features", open=False):
                             gr.Markdown("""
-                            **🔴 How Live Tracking Works:**
+                            **Real-time Monitoring:**
                             
-                            1. **Start Tracking**: Opens your camera
-                            2. **Automatic Analysis**: Every 20 seconds, analyzes recent activity
-                            3. **Real-time Anomaly Detection**: Scans for unusual events every 5 seconds
-                            4. **Manual Analysis**: Click buttons anytime for instant analysis
-                            5. **Voice Chat**: Ask questions about live analysis results
+                            • **Live Feed**: Real-time camera access with overlay information
+                            • **Automatic Analysis**: Comprehensive analysis every 20 seconds
+                            • **Anomaly Detection**: Continuous monitoring every 5 seconds
+                            • **Manual Controls**: Instant analysis and anomaly checking
+                            • **Voice Integration**: Ask questions about live events
                             
-                            **📊 Features:**
-                            - Live video feed with real-time overlay
-                            - 20-second automatic summaries
-                            - 5-second anomaly monitoring
-                            - Instant analysis on demand
-                            - Voice chat about live events
-                            - Continuous monitoring
-                            
-                            **⚠️ Notes:**
-                            - Ensure camera permissions are enabled
-                            - Good lighting improves accuracy
-                            - Use 'Refresh' buttons to update displays
+                            **Requirements:**
+                            • Camera permissions enabled
+                            • Adequate lighting for best results
+                            • Stable system for continuous monitoring
                             """)
                     
                     with gr.Column(scale=2):
                         # Live video feed
-                        live_video = gr.Image(
-                            label="📹 Live Camera Feed",
+                        live_video_display = gr.Image(
+                            label="Live Camera Feed",
                             height=400,
-                            show_download_button=False
+                            show_download_button=False,
+                            elem_classes="gr-panel"
                         )
                         
-                        # Add refresh button for video feed
+                        # Refresh controls
                         with gr.Row():
-                            refresh_video_btn = gr.Button("🔄 Refresh Video Feed", size="sm", variant="secondary")
-                            auto_refresh_btn = gr.Button("🔄 Auto Refresh ON/OFF", size="sm")
+                            refresh_video_btn = gr.Button(
+                                "Refresh Feed", 
+                                size="sm", 
+                                variant="secondary"
+                            )
                         
                         # Live reports
-                        live_reports = gr.Textbox(
-                            label="📋 Live Analysis Reports",
+                        live_reports_display = gr.Textbox(
+                            label="Live Analysis Reports",
                             lines=15,
                             max_lines=25,
                             show_copy_button=True,
                             interactive=False,
-                            value="📋 Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts every 5 seconds\n📊 Manual analysis reports on demand"
+                            value="Live analysis reports will appear here...\n\nAutomatic analysis every 20 seconds\nAnomaly monitoring every 5 seconds\nManual analysis available on demand",
+                            elem_classes="gr-panel"
                         )
                         
-                        # Manual refresh for reports
-                        refresh_reports_btn = gr.Button("🔄 Refresh Reports", size="sm", variant="secondary")
+                        refresh_reports_btn = gr.Button(
+                            "Refresh Reports", 
+                            size="sm", 
+                            variant="secondary"
+                        )
 
-            # Tab 4: Voice Chat (NEW)
-            with gr.TabItem("🎤 Voice Chat"):
+            # Tab 3: Voice Chat
+            with gr.TabItem("Voice Chat", elem_classes="tab-nav"):
                 with gr.Row():
                     with gr.Column(scale=1):
-                        gr.Markdown("### 💬 Chat with Villi about your video")
+                        gr.Markdown("### Chat with AI Assistant")
                         
                         # Question input
                         question_input = gr.Textbox(
-                            label="💬 Ask about the video",
-                            placeholder="What happened in the video? How many people were there? Did you see any unusual activity?",
-                            lines=3
+                            label="Ask about the video",
+                            placeholder="What happened in the video? How many people were there? Any unusual activity?",
+                            lines=3,
+                            elem_classes="gr-panel"
                         )
                         
-                        # Voice input (placeholder for future implementation)
+                        # Voice input placeholder
                         voice_input = gr.Audio(
-                            label="🎤 Voice Input (Optional)",
+                            label="Voice Input (Coming Soon)",
                             sources=["microphone"],
-                            type="filepath"
+                            type="filepath",
+                            visible=False
                         )
                         
-                        # Chat buttons
+                        # Chat controls
                         with gr.Row():
-                            ask_btn = gr.Button("💬 Ask Question", variant="primary", size="lg")
-                            clear_btn = gr.Button("🗑️ Clear Chat", variant="secondary")
+                            ask_btn = gr.Button(
+                                "Ask Question", 
+                                variant="primary", 
+                                size="lg",
+                                elem_classes="gr-button"
+                            )
+                            clear_chat_btn = gr.Button(
+                                "Clear Chat", 
+                                variant="secondary",
+                                elem_classes="gr-button gr-button-secondary"
+                            )
                         
-                        # Voice output (placeholder for future implementation)
-                        voice_output = gr.Audio(
-                            label="🔊 Voice Response",
-                            visible=False  # Hidden for now, enable when TTS is implemented
-                        )
-                        
-                        with gr.Accordion("🎤 Voice Chat Features", open=True):
+                        # Chat features
+                        with gr.Accordion("Voice Chat Features", open=True):
                             gr.Markdown("""
-                            **🎤 How Voice Chat Works:**
+                            **AI Chat Assistant:**
                             
-                            1. **Analyze a Video First**: Upload and analyze a video in any other tab
-                            2. **Ask Questions**: Type or speak your questions about the video
-                            3. **Get AI Responses**: VILA answers based on the analyzed video content
-                            4. **Context Aware**: Remembers your conversation and video analysis
+                            • **Context Aware**: Remembers analyzed video content
+                            • **Natural Language**: Ask questions in plain English
+                            • **Detailed Responses**: Get comprehensive answers about video content
+                            • **Conversation Memory**: Maintains chat history for follow-up questions
                             
-                            **💡 Example Questions:**
-                            - "What activities did you see in the video?"
-                            - "How many people were in the scene?"
-                            - "Did anything unusual happen?"
-                            - "What was the setting or environment like?"
-                            - "Were there any safety concerns?"
-                            - "Can you describe the interactions between people?"
+                            **Example Questions:**
                             
-                            **📋 Current Status:**
-                            - ✅ Text chat fully functional
-                            - 🔧 Voice input: Under development
-                            - 🔧 Voice output: Under development
+                            • "What activities did you observe?"
+                            • "How many people were in the scene?"
+                            • "Were there any safety concerns?"
+                            • "Describe the environment and setting"
+                            • "What interactions occurred between people?"
                             
-                            **⚠️ Note**: Analyze a video first, then come here to chat!
+                            **Note**: Analyze a video first to enable chat functionality
                             """)
                     
                     with gr.Column(scale=2):
-                        # Chat history display
-                        chat_display = gr.Textbox(
-                            label="💬 Chat History",
-                            lines=20,
-                            max_lines=30,
+                        # Chat display
+                        chat_history_display = gr.Textbox(
+                            label="Conversation History",
+                            lines=18,
+                            max_lines=25,
                             interactive=False,
                             show_copy_button=True,
-                            value="💬 Ask me anything about the analyzed video!\n\nTip: Upload and analyze a video first, then come here to chat about it."
+                            value="Welcome to the AI Chat Assistant!\n\nAnalyze a video first, then ask me questions about it.",
+                            elem_classes="gr-panel"
                         )
                         
                         # Current response
-                        current_response = gr.Textbox(
-                            label="🤖 Villi's Response",
+                        current_response_display = gr.Textbox(
+                            label="Assistant Response",
                             lines=8,
-                            max_lines=15,
+                            max_lines=12,
                             interactive=False,
-                            show_copy_button=True
+                            show_copy_button=True,
+                            elem_classes="gr-panel"
                         )
 
-        # Event handlers for uploaded video analysis
+        # Event Handlers
+        
+        # Video analysis handlers
         analyze_btn.click(
-            fn=process_video, 
-            inputs=[inp], 
-            outputs=[out_vid, out_txt]
+            fn=process_video_analysis, 
+            inputs=[video_input], 
+            outputs=[output_video, analysis_report, anomaly_btn]
         )
         
         anomaly_btn.click(
-            fn=detect_video_anomalies, 
-            inputs=[inp_anomaly], 
-            outputs=[out_vid_anomaly, out_txt_anomaly]
+            fn=process_video_anomaly_detection,
+            inputs=[video_input],
+            outputs=[output_video, analysis_report]
         )
         
-        # Event handlers for live tracking
+        # Live monitoring handlers
         start_live_btn.click(
             fn=start_live_tracking,
             inputs=[],
-            outputs=[live_video, live_status]
+            outputs=[live_video_display, live_status]
         )
         
         stop_live_btn.click(
             fn=stop_live_tracking,
             inputs=[],
-            outputs=[live_video, live_status]
+            outputs=[live_video_display, live_status]
         )
         
-        # Event handlers for live analysis
         live_analyze_btn.click(
             fn=process_live_video_analysis,
             inputs=[],
-            outputs=[live_reports]
+            outputs=[live_reports_display]
         )
         
         live_anomaly_btn.click(
             fn=process_live_anomaly_detection,
             inputs=[],
-            outputs=[live_reports]
+            outputs=[live_reports_display]
         )
         
-        # Event handlers for voice chat
+        # Voice chat handlers
         ask_btn.click(
             fn=process_voice_chat_question,
             inputs=[question_input, voice_input],
-            outputs=[current_response, voice_output, chat_display]
+            outputs=[current_response_display, voice_input, chat_history_display]
         )
         
-        clear_btn.click(
+        clear_chat_btn.click(
             fn=clear_chat_history,
             inputs=[],
-            outputs=[question_input, chat_display]
+            outputs=[question_input, chat_history_display]
         )
         
         # Refresh handlers
         refresh_reports_btn.click(
             fn=get_live_updates,
             inputs=[],
-            outputs=[live_reports]
+            outputs=[live_reports_display]
         )
         
         refresh_video_btn.click(
             fn=get_current_live_frame,
             inputs=[],
-            outputs=[live_video]
+            outputs=[live_video_display]
         )
 
-        # Auto-refresh setup using gr.Timer (if available) or manual refresh instructions
+        # Auto-refresh timers
         try:
-            # Try to set up auto-refresh timer for live video (every 100ms for smooth video)
-            video_timer = gr.Timer(0.1)  # 100ms = 10 FPS display refresh
+            # Live video refresh timer (10 FPS for smooth display)
+            video_timer = gr.Timer(0.1)
             video_timer.tick(
                 fn=get_current_live_frame,
                 inputs=[],
-                outputs=[live_video]
+                outputs=[live_video_display]
             )
             
-            # Timer for reports refresh (every 2 seconds)
-            reports_timer = gr.Timer(2.0)  # 2 seconds
+            # Reports refresh timer (every 2 seconds)
+            reports_timer = gr.Timer(2.0)
             reports_timer.tick(
                 fn=get_live_updates,
                 inputs=[],
-                outputs=[live_reports]
+                outputs=[live_reports_display]
             )
             
         except Exception as e:
-            print("Auto-refresh timer not available, using manual refresh buttons")
-            gr.Markdown("**Note**: Use the refresh buttons to update live displays manually.")
+            print("Auto-refresh timers not available, using manual refresh")
 
     return demo
 
