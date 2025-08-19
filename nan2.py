@@ -13,8 +13,6 @@ import urllib3
 import threading
 from datetime import datetime
 import queue
-from fastapi.middleware.cors import CORSMiddleware
-
 
 # Disable SSL warnings and configure SSL context
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -23,8 +21,6 @@ ssl._create_default_https_context = ssl._create_unverified_context
 # NVIDIA API Configuration
 NVIDIA_API_KEY = "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"
 VILA_API_URL = "https://ai.api.nvidia.com/v1/vlm/nvidia/vila"
-
-print("VILA model will be used via NVIDIA API for video analysis and summarization")
 
 # Global variables for live tracking
 live_tracking_active = False
@@ -36,6 +32,11 @@ last_analysis_time = 0
 frame_accumulator = []
 current_live_frame = None
 live_reports_content = ""
+
+# Global variables for voice chat
+video_context_frames = []
+video_context_summary = ""
+chat_history = []
 
 # ---- Helper Functions ----
 def encode_frame_to_base64(frame):
@@ -271,7 +272,7 @@ def create_output_video(cap, output_path, fps, w, h, video_type="analysis"):
             if video_type == "anomaly":
                 cv2.putText(frame, f"ANOMALY SCAN - Time: {timestamp:.1f}s", 
                            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
-                cv2.putText(frame, "🚨 Scanning for anomalies...", 
+                cv2.putText(frame, "Scanning for anomalies...", 
                            (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
             else:
                 cv2.putText(frame, f"Time: {timestamp:.1f}s", 
@@ -290,6 +291,130 @@ def create_output_video(cap, output_path, fps, w, h, video_type="analysis"):
     except Exception as e:
         print(f"Error creating output video: {e}")
         return False
+
+# ---- Voice Chat Functions ----
+def process_voice_chat_question(question, audio_input=None):
+    """Process voice or text question about the video"""
+    global video_context_frames, video_context_summary, chat_history
+    
+    try:
+        # Handle audio input if provided
+        if audio_input is not None and question.strip() == "":
+            try:
+                # Note: In a real implementation, you'd use speech-to-text here
+                # For now, we'll show how it would work
+                return "🎤 Voice input detected! Please also type your question in the text box for now. In a full implementation, this would convert speech to text automatically.", None, get_chat_history()
+            except Exception as e:
+                return f"❌ Error processing voice input: {str(e)}", None, get_chat_history()
+        
+        # Check if we have video context
+        if not video_context_frames and not video_context_summary:
+            response = "❌ No video has been analyzed yet. Please upload and analyze a video first in the 'Upload Video Analysis' tab, then come back to ask questions about it."
+            chat_history.append({"role": "user", "content": question})
+            chat_history.append({"role": "assistant", "content": response})
+            return response, None, get_chat_history()
+        
+        # Limit chat history to last 10 exchanges
+        if len(chat_history) > 20:
+            chat_history = chat_history[-20:]
+        
+        # Add user question to history
+        chat_history.append({"role": "user", "content": question})
+        
+        # Create context-aware prompt
+        context_prompt = f"""You are an AI assistant helping analyze a video. Here's what we know about the video:
+
+VIDEO ANALYSIS CONTEXT:
+{video_context_summary}
+
+CHAT HISTORY:
+{format_chat_history_for_context()}
+
+USER QUESTION: {question}
+
+Please answer the user's question based on the video analysis context provided. Be conversational and helpful. If the question asks about something not visible in the analyzed frames, let them know the limitation while providing what information you can from the analysis."""
+
+        # Prepare payload for VILA
+        payload_content = [{"type": "text", "text": context_prompt}]
+        
+        # Add some key frames if available for visual context
+        if video_context_frames and len(video_context_frames) > 0:
+            # Use up to 5 frames for context
+            frames_to_use = video_context_frames[:5]
+            for frame in frames_to_use:
+                encoded_frame = encode_frame_to_base64(frame)
+                if encoded_frame:
+                    payload_content.append({
+                        "type": "image_url",
+                        "image_url": {"url": encoded_frame}
+                    })
+        
+        payload = {
+            "model": "nvidia/vila",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": payload_content
+                }
+            ],
+            "max_tokens": 400,
+            "temperature": 0.5,
+            "stream": False
+        }
+        
+        print(f"Processing question: {question}")
+        response = make_vila_request(payload)
+        
+        # Add assistant response to history
+        chat_history.append({"role": "assistant", "content": response})
+        
+        # Generate audio response (placeholder - in real implementation would use TTS)
+        audio_response = None  # Would be the actual audio file path
+        
+        return response, audio_response, get_chat_history()
+        
+    except Exception as e:
+        error_response = f"❌ Error processing your question: {str(e)}"
+        chat_history.append({"role": "assistant", "content": error_response})
+        return error_response, None, get_chat_history()
+
+def format_chat_history_for_context():
+    """Format chat history for context in API calls"""
+    if not chat_history:
+        return "No previous conversation."
+    
+    formatted_history = []
+    for entry in chat_history[-6:]:  # Last 3 exchanges
+        role = "User" if entry["role"] == "user" else "Assistant"
+        formatted_history.append(f"{role}: {entry['content']}")
+    
+    return "\n".join(formatted_history)
+
+def get_chat_history():
+    """Format chat history for display"""
+    if not chat_history:
+        return "💬 Ask me anything about the analyzed video!\n\nTip: Upload and analyze a video first, then come here to chat about it."
+    
+    formatted_chat = []
+    for entry in chat_history:
+        if entry["role"] == "user":
+            formatted_chat.append(f"👤 **You:** {entry['content']}")
+        else:
+            formatted_chat.append(f"🤖 **VILA:** {entry['content']}")
+    
+    return "\n\n".join(formatted_chat)
+
+def clear_chat_history():
+    """Clear the chat history"""
+    global chat_history
+    chat_history = []
+    return "", get_chat_history()
+
+def store_video_context(key_frames, summary):
+    """Store video context for voice chat"""
+    global video_context_frames, video_context_summary
+    video_context_frames = key_frames.copy() if key_frames else []
+    video_context_summary = summary
 
 # ---- Live Video Functions (FIXED) ----
 def live_frame_capture_worker():
@@ -361,6 +486,9 @@ def live_analysis_worker():
                     
                     # Send to queue for UI update
                     live_analysis_queue.put(("analysis", report))
+                    
+                    # Store context for voice chat
+                    store_video_context(analysis_frames, analysis_result)
                 
                 # Reset timer (keep accumulator for next analysis)
                 last_analysis_time = current_time
@@ -464,10 +592,10 @@ def start_live_tracking():
         time.sleep(1)
         
         status_msg = "✅ Live tracking started! Camera activated.\n\n"
-        status_msg += "📊 Status: Collecting frames...\n"
-        status_msg += "🔄 Next analysis in 20 seconds\n"
-        status_msg += "🚨 Anomaly detection: Active (every 5s)\n\n"
-        status_msg += "Analysis reports will appear in the reports section as they are generated."
+        status_msg += " Status: Collecting frames...\n"
+        status_msg += " Next analysis in 20 seconds\n"
+        status_msg += " Anomaly detection: Active (every 5s)\n\n"
+        status_msg += " Analysis reports will appear in the reports section as they are generated."
         
         return get_current_live_frame(), status_msg
         
@@ -531,7 +659,7 @@ def get_live_updates():
     if live_reports_content:
         return live_reports_content
     else:
-        return "Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts as they happen\n📊 Manual analysis reports on demand"
+        return "📋 Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts as they happen\n📊 Manual analysis reports on demand"
 
 def process_live_video_analysis():
     """Process analysis for live video (called when button pressed during live tracking)"""
@@ -541,7 +669,7 @@ def process_live_video_analysis():
         return "❌ Live tracking is not active. Please start live tracking first."
     
     if len(frame_accumulator) < 5:
-        return "⏳ Not enough frames collected yet. Please wait a few more seconds."
+        return "Not enough frames collected yet. Please wait a few more seconds."
     
     try:
         # Take recent frames for immediate analysis
@@ -561,6 +689,9 @@ def process_live_video_analysis():
         
         # Add to global reports
         live_reports_content = report + live_reports_content
+        
+        # Store context for voice chat
+        store_video_context(recent_frames, analysis_result)
         
         return live_reports_content
         
@@ -605,7 +736,7 @@ def process_live_anomaly_detection():
         live_reports_content = error_report + live_reports_content
         return live_reports_content
 
-# ---- Video Processing Functions (Original) ----
+# ---- Video Processing Functions (Updated with Voice Context) ----
 def process_video(input_path):
     """Original video processing function for general analysis"""
     if input_path is None:
@@ -648,6 +779,9 @@ def process_video(input_path):
         print("Analyzing video content with VILA...")
         vila_summary = analyze_video_with_vila(key_frames, duration)
 
+        # Store context for voice chat
+        store_video_context(key_frames, vila_summary)
+
         # Build Complete Summary
         summary = "🎥 VIDEO ANALYSIS REPORT\n"
         summary += "=" * 50 + "\n\n"
@@ -658,14 +792,15 @@ def process_video(input_path):
         summary += f"• Resolution: {w}x{h}\n"
         summary += f"• Processing Time: {time.time() - start_time:.1f} seconds\n\n"
         
-        summary += f"🤖 VILA AI Analysis:\n"
+        summary += f"🤖 CCTVENTORY Analysis:\n"
         summary += "-" * 30 + "\n"
         summary += vila_summary + "\n\n"
         
         summary += f"📝 Analysis Method:\n"
         summary += f"• Analyzed {len(key_frames)} key frames using VILA\n"
         summary += f"• AI Model: NVIDIA VILA (Vision-Language Assistant)\n"
-        summary += f"• Frame sampling: Evenly distributed across video duration\n"
+        summary += f"• Frame sampling: Evenly distributed across video duration\n\n"
+        summary += f"💬 Voice Chat Ready: You can now ask questions about this video in the Voice Chat tab!"
 
         print("Video analysis complete!")
         return output_path, summary
@@ -717,6 +852,9 @@ def detect_video_anomalies(input_path):
         print("Detecting anomalies with VILA...")
         anomaly_report = detect_anomalies_with_vila(key_frames, duration)
 
+        # Store context for voice chat (anomaly context)
+        store_video_context(key_frames, f"Anomaly Detection Results: {anomaly_report}")
+
         # Build Anomaly Report
         report = "🚨 ANOMALY DETECTION SUMMARY\n"
         report += "=" * 50 + "\n\n"
@@ -757,7 +895,8 @@ def detect_video_anomalies(input_path):
         report += "-" * 30 + "\n"
         report += anomaly_report + "\n\n"
         
-        report += f"⚙️ Detection Method: NVIDIA VILA AI • Focus: Safety & Incident Detection\n"
+        report += f"Detection Method: NVIDIA CCTVENTORY • Focus: Safety & Incident Detection\n\n"
+        report += f"Voice Chat Ready: Ask questions about the anomaly detection results in the Voice Chat tab!"
 
         print("Anomaly detection complete!")
         return output_path, report
@@ -767,12 +906,10 @@ def detect_video_anomalies(input_path):
         print(error_msg)
         return None, error_msg
 
-# ---- Gradio UI (FIXED) ----
+# ---- Gradio UI (Enhanced with Voice Chat) ----
 def create_interface():
-    with gr.Blocks(title="VILA Video Analyzer", theme=gr.themes.Soft()) as demo:
-        gr.Markdown("# 🎥 VILA Video Analysis & Anomaly Detection")
-        gr.Markdown("Choose your analysis mode: **Upload Video**, **Upload for Anomaly Detection**, or **Live Camera Tracking**!")
-
+    with gr.Blocks(title="VILA Video Analyzer with Voice Chat", theme=gr.themes.Soft()) as demo:
+        gr.Markdown("# 🎥 CCTV Video Analysis & Voice Chat System")
         with gr.Tabs():
             # Tab 1: Video Upload Analysis
             with gr.TabItem("📁 Upload Video Analysis"):
@@ -793,13 +930,14 @@ def create_interface():
                             - Describes activities, people, and settings
                             - Provides natural language summary
                             - Identifies interactions and story flow
+                            - Prepares video context for voice chat
                             """)
                     
                     with gr.Column(scale=2):
                         # Output components
                         out_vid = gr.Video(label="📹 Processed Video")
                         out_txt = gr.Textbox(
-                            label="Analysis Report", 
+                            label="📋 Analysis Report", 
                             lines=25, 
                             max_lines=35,
                             show_copy_button=True,
@@ -826,6 +964,7 @@ def create_interface():
                             - Identifies objects falling or equipment failures
                             - Reports safety incidents and disruptions
                             - Provides severity assessment of anomalies
+                            - Enables voice chat about detected anomalies
                             
                             **Monitored Anomalies:**
                             - Falling objects/people
@@ -855,13 +994,13 @@ def create_interface():
                         gr.Markdown("### 🔴 Live Camera Controls")
                         
                         with gr.Row():
-                            start_live_btn = gr.Button("🔴 Start Live Tracking", variant="primary", size="lg")
-                            stop_live_btn = gr.Button("🛑 Stop Live Tracking", variant="stop", size="lg")
+                            start_live_btn = gr.Button("Start Live Tracking", variant="primary", size="lg")
+                            stop_live_btn = gr.Button("Stop Live Tracking", variant="stop", size="lg")
                         
                         gr.Markdown("### 📊 Manual Analysis")
                         with gr.Row():
-                            live_analyze_btn = gr.Button("🎬 Analyze Current Video", variant="primary")
-                            live_anomaly_btn = gr.Button("🚨 Check for Anomalies", variant="secondary")
+                            live_analyze_btn = gr.Button("Analyze Current Video", variant="primary")
+                            live_anomaly_btn = gr.Button("Check for Anomalies", variant="secondary")
                         
                         # Live status
                         live_status = gr.Textbox(
@@ -879,12 +1018,14 @@ def create_interface():
                             2. **Automatic Analysis**: Every 20 seconds, analyzes recent activity
                             3. **Real-time Anomaly Detection**: Scans for unusual events every 5 seconds
                             4. **Manual Analysis**: Click buttons anytime for instant analysis
+                            5. **Voice Chat**: Ask questions about live analysis results
                             
                             **📊 Features:**
                             - Live video feed with real-time overlay
                             - 20-second automatic summaries
                             - 5-second anomaly monitoring
                             - Instant analysis on demand
+                            - Voice chat about live events
                             - Continuous monitoring
                             
                             **⚠️ Notes:**
@@ -908,20 +1049,92 @@ def create_interface():
                         
                         # Live reports
                         live_reports = gr.Textbox(
-                            label="Live Analysis Reports",
+                            label="📋 Live Analysis Reports",
                             lines=15,
                             max_lines=25,
                             show_copy_button=True,
                             interactive=False,
-                            value="Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts every 5 seconds\n📊 Manual analysis reports on demand"
+                            value="📋 Live analysis reports will appear here...\n\n🔄 Automatic reports every 20 seconds\n🚨 Anomaly alerts every 5 seconds\n📊 Manual analysis reports on demand"
                         )
                         
                         # Manual refresh for reports
                         refresh_reports_btn = gr.Button("🔄 Refresh Reports", size="sm", variant="secondary")
 
-        # Tips section
-        gr.Markdown("### 💡 Tips for Best Results:")
-        gr.Markdown("• **Upload Analysis**: Good for detailed post-processing of recorded videos • **Anomaly Detection**: Best for safety monitoring and incident review • **Live Tracking**: Perfect for real-time monitoring and immediate response • Clear lighting and stable camera improve accuracy • Use refresh buttons to update live displays")
+            # Tab 4: Voice Chat (NEW)
+            with gr.TabItem("🎤 Voice Chat"):
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        gr.Markdown("### 💬 Chat with Villi about your video")
+                        
+                        # Question input
+                        question_input = gr.Textbox(
+                            label="💬 Ask about the video",
+                            placeholder="What happened in the video? How many people were there? Did you see any unusual activity?",
+                            lines=3
+                        )
+                        
+                        # Voice input (placeholder for future implementation)
+                        voice_input = gr.Audio(
+                            label="🎤 Voice Input (Optional)",
+                            sources=["microphone"],
+                            type="filepath"
+                        )
+                        
+                        # Chat buttons
+                        with gr.Row():
+                            ask_btn = gr.Button("💬 Ask Question", variant="primary", size="lg")
+                            clear_btn = gr.Button("🗑️ Clear Chat", variant="secondary")
+                        
+                        # Voice output (placeholder for future implementation)
+                        voice_output = gr.Audio(
+                            label="🔊 Voice Response",
+                            visible=False  # Hidden for now, enable when TTS is implemented
+                        )
+                        
+                        with gr.Accordion("🎤 Voice Chat Features", open=True):
+                            gr.Markdown("""
+                            **🎤 How Voice Chat Works:**
+                            
+                            1. **Analyze a Video First**: Upload and analyze a video in any other tab
+                            2. **Ask Questions**: Type or speak your questions about the video
+                            3. **Get AI Responses**: VILA answers based on the analyzed video content
+                            4. **Context Aware**: Remembers your conversation and video analysis
+                            
+                            **💡 Example Questions:**
+                            - "What activities did you see in the video?"
+                            - "How many people were in the scene?"
+                            - "Did anything unusual happen?"
+                            - "What was the setting or environment like?"
+                            - "Were there any safety concerns?"
+                            - "Can you describe the interactions between people?"
+                            
+                            **📋 Current Status:**
+                            - ✅ Text chat fully functional
+                            - 🔧 Voice input: Under development
+                            - 🔧 Voice output: Under development
+                            
+                            **⚠️ Note**: Analyze a video first, then come here to chat!
+                            """)
+                    
+                    with gr.Column(scale=2):
+                        # Chat history display
+                        chat_display = gr.Textbox(
+                            label="💬 Chat History",
+                            lines=20,
+                            max_lines=30,
+                            interactive=False,
+                            show_copy_button=True,
+                            value="💬 Ask me anything about the analyzed video!\n\nTip: Upload and analyze a video first, then come here to chat about it."
+                        )
+                        
+                        # Current response
+                        current_response = gr.Textbox(
+                            label="🤖 Villi's Response",
+                            lines=8,
+                            max_lines=15,
+                            interactive=False,
+                            show_copy_button=True
+                        )
 
         # Event handlers for uploaded video analysis
         analyze_btn.click(
@@ -960,6 +1173,19 @@ def create_interface():
             fn=process_live_anomaly_detection,
             inputs=[],
             outputs=[live_reports]
+        )
+        
+        # Event handlers for voice chat
+        ask_btn.click(
+            fn=process_voice_chat_question,
+            inputs=[question_input, voice_input],
+            outputs=[current_response, voice_output, chat_display]
+        )
+        
+        clear_btn.click(
+            fn=clear_chat_history,
+            inputs=[],
+            outputs=[question_input, chat_display]
         )
         
         # Refresh handlers
@@ -1001,18 +1227,8 @@ def create_interface():
 
 if __name__ == "__main__":
     demo = create_interface()
-    
-    # Add CORS middleware to the FastAPI app
-    demo.app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],  # Adjust this to be more restrictive in production
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    
     demo.launch(
-        server_name="0.0.0.0",
+        server_name="127.0.0.1",
         server_port=7860,
         share=False,
         debug=False
